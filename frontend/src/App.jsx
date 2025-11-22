@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
+import { CssBaseline } from '@mui/material';
+import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
@@ -14,24 +15,9 @@ import HistoryPage from './pages/HistoryPage';
 import JobDescriptionsPage from './pages/JobDescriptionsPage';
 import MatchResultsPage from './pages/MatchResultsPage';
 
-const theme = createTheme({
-    palette: {
-        mode: 'light',
-        primary: {
-            main: '#1976d2',
-        },
-        secondary: {
-            main: '#dc004e',
-        },
-    },
-    typography: {
-        fontFamily: 'Inter, sans-serif',
-    },
-});
-
 function App() {
     return (
-        <ThemeProvider theme={theme}>
+        <ThemeProvider>
             <CssBaseline />
             <AuthProvider>
                 <Router>

@@ -5,12 +5,15 @@ import {
     AppBar, Toolbar, IconButton, Dialog, DialogTitle, DialogContent,
     DialogActions, TextField, Chip, Checkbox, FormControlLabel
 } from '@mui/material';
-import { ArrowBack, Add, Delete, Edit, Home } from '@mui/icons-material';
+import { ArrowBack, Add, Delete, Work } from '@mui/icons-material';
 import { jobDescriptionService } from '../services/jobDescriptionService';
 import { resumeService } from '../services/resumeService';
+import { useThemeMode } from '../context/ThemeContext';
+import ThemeToggle from '../components/ThemeToggle';
 
 const JobDescriptionsPage = () => {
     const navigate = useNavigate();
+    const { mode } = useThemeMode();
     const [jds, setJds] = useState([]);
     const [resumes, setResumes] = useState([]);
     const [openDialog, setOpenDialog] = useState(false);
@@ -131,88 +134,151 @@ const JobDescriptionsPage = () => {
     };
 
     return (
-        <Box>
-            <AppBar position="static">
+        <Box sx={{ minHeight: '100vh' }}>
+            <AppBar
+                position="static"
+                elevation={0}
+                sx={{
+                    background: mode === 'dark'
+                        ? 'rgba(30, 41, 59, 0.8)'
+                        : 'rgba(255, 255, 255, 0.8)',
+                    backdropFilter: 'blur(20px)',
+                    borderBottom: `1px solid ${mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
+                }}
+            >
                 <Toolbar>
                     <IconButton edge="start" color="inherit" onClick={() => navigate('/dashboard')} sx={{ mr: 1 }}>
                         <ArrowBack />
                     </IconButton>
-                    <IconButton color="inherit" onClick={() => navigate('/dashboard')} sx={{ mr: 1 }}>
-                        <Home />
-                    </IconButton>
-                    <Typography variant="h6" sx={{ flexGrow: 1 }}>
+                    <Typography
+                        variant="h6"
+                        sx={{
+                            flexGrow: 1,
+                            fontWeight: 700,
+                            background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            backgroundClip: 'text',
+                        }}
+                    >
                         Job Descriptions
                     </Typography>
-                    <Button color="inherit" startIcon={<Add />} onClick={handleOpenCreate}>
+                    <ThemeToggle />
+                    <Button
+                        color="inherit"
+                        startIcon={<Add />}
+                        onClick={() => setOpenDialog(true)}
+                        sx={{ ml: 2 }}
+                    >
                         Add New
                     </Button>
                 </Toolbar>
             </AppBar>
 
             <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-                <Grid container spacing={3}>
-                    {jds.length === 0 ? (
-                        <Grid item xs={12}>
-                            <Card>
-                                <CardContent sx={{ textAlign: 'center', py: 4 }}>
-                                    <Typography variant="h6" color="text.secondary">
-                                        No job descriptions yet
-                                    </Typography>
-                                    <Button
-                                        variant="contained"
-                                        startIcon={<Add />}
-                                        onClick={handleOpenCreate}
-                                        sx={{ mt: 2 }}
-                                    >
-                                        Create Your First JD
-                                    </Button>
-                                </CardContent>
-                            </Card>
-                        </Grid>
-                    ) : (
-                        jds.map((jd) => (
-                            <Grid item xs={12} md={6} key={jd.id}>
-                                <Card>
-                                    <CardContent>
-                                        <Typography variant="h6" gutterBottom>
-                                            {jd.title}
+                <Box className="fade-in">
+                    <Grid container spacing={3}>
+                        {jds.length === 0 ? (
+                            <Grid item xs={12}>
+                                <Card
+                                    sx={{
+                                        borderRadius: 4,
+                                        background: mode === 'dark'
+                                            ? 'rgba(30, 41, 59, 0.6)'
+                                            : 'rgba(255, 255, 255, 0.9)',
+                                        backdropFilter: 'blur(10px)',
+                                        border: `1px solid ${mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'}`,
+                                    }}
+                                >
+                                    <CardContent sx={{ textAlign: 'center', py: 8 }}>
+                                        <Work sx={{ fontSize: 80, color: 'text.secondary', mb: 2, opacity: 0.5 }} />
+                                        <Typography variant="h5" gutterBottom sx={{ fontWeight: 600 }}>
+                                            No job descriptions yet
                                         </Typography>
-                                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                                            {jd.description.substring(0, 150)}...
+                                        <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+                                            Create your first job description to start matching resumes
                                         </Typography>
-                                        {jd.required_skills && jd.required_skills.length > 0 && (
-                                            <Box sx={{ mb: 2 }}>
-                                                {jd.required_skills.slice(0, 5).map((skill, idx) => (
-                                                    <Chip key={idx} label={skill} size="small" sx={{ mr: 0.5, mb: 0.5 }} />
-                                                ))}
-                                            </Box>
-                                        )}
-                                        <Box display="flex" gap={1}>
-                                            <Button
-                                                size="small"
-                                                variant="contained"
-                                                onClick={() => handleOpenMatch(jd)}
-                                            >
-                                                Match Resume
-                                            </Button>
-                                            <IconButton size="small" color="primary" onClick={() => handleEdit(jd)}>
-                                                <Edit />
-                                            </IconButton>
-                                            <IconButton size="small" color="error" onClick={() => handleDelete(jd.id)}>
-                                                <Delete />
-                                            </IconButton>
-                                        </Box>
+                                        <Button
+                                            variant="contained"
+                                            startIcon={<Add />}
+                                            onClick={() => setOpenDialog(true)}
+                                            size="large"
+                                        >
+                                            Create Your First JD
+                                        </Button>
                                     </CardContent>
                                 </Card>
                             </Grid>
-                        ))
-                    )}
-                </Grid>
+                        ) : (
+                            jds.map((jd) => (
+                                <Grid item xs={12} md={6} key={jd.id}>
+                                    <Card
+                                        sx={{
+                                            borderRadius: 4,
+                                            background: mode === 'dark'
+                                                ? 'rgba(30, 41, 59, 0.6)'
+                                                : 'rgba(255, 255, 255, 0.9)',
+                                            backdropFilter: 'blur(10px)',
+                                            border: `1px solid ${mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'}`,
+                                            height: '100%',
+                                        }}
+                                    >
+                                        <CardContent>
+                                            <Typography variant="h5" gutterBottom sx={{ fontWeight: 600 }}>
+                                                {jd.title}
+                                            </Typography>
+                                            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                                                {jd.description.substring(0, 150)}...
+                                            </Typography>
+                                            {jd.required_skills && jd.required_skills.length > 0 && (
+                                                <Box sx={{ mb: 3 }}>
+                                                    <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+                                                        Required Skills
+                                                    </Typography>
+                                                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                                                        {jd.required_skills.slice(0, 5).map((skill, idx) => (
+                                                            <Chip
+                                                                key={idx}
+                                                                label={skill}
+                                                                size="small"
+                                                                sx={{
+                                                                    background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                                                                    color: 'white',
+                                                                    fontWeight: 600,
+                                                                }}
+                                                            />
+                                                        ))}
+                                                    </Box>
+                                                </Box>
+                                            )}
+                                            <Box display="flex" gap={1}>
+                                                <Button
+                                                    size="small"
+                                                    variant="contained"
+                                                    onClick={() => {
+                                                        setSelectedJD(jd);
+                                                        setOpenMatchDialog(true);
+                                                    }}
+                                                    fullWidth
+                                                >
+                                                    Match Resume
+                                                </Button>
+                                                <IconButton size="small" color="error" onClick={() => handleDelete(jd.id)}>
+                                                    <Delete />
+                                                </IconButton>
+                                            </Box>
+                                        </CardContent>
+                                    </Card>
+                                </Grid>
+                            ))
+                        )}
+                    </Grid>
+                </Box>
             </Container>
 
             {/* Create/Edit JD Dialog */}
             <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth>
-                <DialogTitle>{isEditing ? 'Edit Job Description' : 'Create Job Description'}</DialogTitle>
+                <DialogTitle sx={{ fontWeight: 600, fontSize: '1.5rem' }}>Create Job Description</DialogTitle>
                 <DialogContent>
                     <TextField
                         fullWidth
@@ -247,7 +313,7 @@ const JobDescriptionsPage = () => {
                         placeholder="3-5 years"
                     />
                 </DialogContent>
-                <DialogActions>
+                <DialogActions sx={{ p: 3 }}>
                     <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
                     <Button onClick={handleSave} variant="contained">
                         {isEditing ? 'Update' : 'Create'}
@@ -256,42 +322,26 @@ const JobDescriptionsPage = () => {
             </Dialog>
 
             {/* Match Resume Dialog */}
-            <Dialog open={openMatchDialog} onClose={() => setOpenMatchDialog(false)} maxWidth="sm" fullWidth>
-                <DialogTitle>Select Resumes to Match</DialogTitle>
+            <Dialog open={openMatchDialog} onClose={() => setOpenMatchDialog(false)}>
+                <DialogTitle sx={{ fontWeight: 600 }}>Select Resume to Match</DialogTitle>
                 <DialogContent>
                     {resumes.length === 0 ? (
                         <Typography>No completed resumes available</Typography>
                     ) : (
-                        <Box>
-                            <FormControlLabel
-                                control={
-                                    <Checkbox
-                                        checked={selectedResumes.length === resumes.length}
-                                        indeterminate={selectedResumes.length > 0 && selectedResumes.length < resumes.length}
-                                        onChange={handleSelectAll}
-                                    />
-                                }
-                                label="Select All"
-                                sx={{ mb: 1, borderBottom: 1, borderColor: 'divider', width: '100%' }}
-                            />
-                            {resumes.map((resume) => (
-                                <Box key={resume.id} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                                    <FormControlLabel
-                                        control={
-                                            <Checkbox
-                                                checked={selectedResumes.includes(resume.id)}
-                                                onChange={() => handleToggleResume(resume.id)}
-                                            />
-                                        }
-                                        label={resume.filename}
-                                        sx={{ flexGrow: 1 }}
-                                    />
-                                </Box>
-                            ))}
-                        </Box>
+                        resumes.map((resume) => (
+                            <Button
+                                key={resume.id}
+                                fullWidth
+                                variant="outlined"
+                                sx={{ mb: 1, justifyContent: 'flex-start' }}
+                                onClick={() => handleMatch(resume.id)}
+                            >
+                                {resume.filename}
+                            </Button>
+                        ))
                     )}
                 </DialogContent>
-                <DialogActions>
+                <DialogActions sx={{ p: 3 }}>
                     <Button onClick={() => setOpenMatchDialog(false)}>Cancel</Button>
                     <Button
                         onClick={handleMatch}
