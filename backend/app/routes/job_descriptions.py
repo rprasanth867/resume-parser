@@ -4,6 +4,7 @@ from app.models.job_description import JobDescription
 from app.models.resume import Resume
 from app.models.resume_match import ResumeMatch
 from app.services.ats_scorer import ATSScorer
+from app.services.ai_generator import AIGenerator
 from app.extensions import db
 
 job_descriptions_bp = Blueprint('job_descriptions', __name__)
@@ -100,6 +101,13 @@ def match_resumes(jd_id):
         
         if not resume_ids:
             return jsonify({'error': 'No resumes selected'}), 400
+        
+        # Delete all existing matches for this job description
+        # This ensures only the newly selected resumes will have matches
+        existing_matches = ResumeMatch.query.filter_by(job_description_id=jd.id).all()
+        for match in existing_matches:
+            db.session.delete(match)
+        db.session.flush()  # Flush to database but don't commit yet
             
         results = []
         errors = []
@@ -130,27 +138,19 @@ def match_resumes(jd_id):
                 # Calculate match
                 match_result = scorer.calculate_match_score(resume_data, jd)
                 
-                # Check if match already exists
-                match = ResumeMatch.query.filter_by(
+                # Create new match (old ones were already deleted above)
+                match = ResumeMatch(
                     resume_id=resume.id,
-                    job_description_id=jd.id
-                ).first()
-                
-                if not match:
-                    match = ResumeMatch(
-                        resume_id=resume.id,
-                        job_description_id=jd.id
-                    )
-                    db.session.add(match)
-                
-                # Update match data
-                match.match_score = match_result['overall_score']
-                match.skills_match_score = match_result['skills_match_score']
-                match.experience_match_score = match_result['experience_match_score']
-                match.education_match_score = match_result['education_match_score']
-                match.matched_skills = match_result['matched_skills']
-                match.missing_skills = match_result['missing_skills']
-                match.recommendations = match_result['recommendations']
+                    job_description_id=jd.id,
+                    match_score=match_result['overall_score'],
+                    skills_match_score=match_result['skills_match_score'],
+                    experience_match_score=match_result['experience_match_score'],
+                    education_match_score=match_result['education_match_score'],
+                    matched_skills=match_result['matched_skills'],
+                    missing_skills=match_result['missing_skills'],
+                    recommendations=match_result['recommendations']
+                )
+                db.session.add(match)
                 
                 results.append({
                     'resume_id': resume.id,
@@ -328,3 +328,77 @@ def get_all_matches():
         
     except Exception as e:
         return jsonify({'error': f'Failed to get matches: {str(e)}'}), 500
+
+@job_descriptions_bp.route('/generate', methods=['POST'])
+@jwt_required()
+def generate_job_description():
+    """Generate a job description using AI based on user requirements"""
+    try:
+        data = request.get_json()
+        requirements = data.get('requirements', '')
+        
+        if not requirements:
+            return jsonify({'error': 'Requirements are required'}), 400
+        
+        # Initialize AI generator
+        try:
+            ai_generator = AIGenerator()
+        except ValueError as e:
+            return jsonify({'error': 'AI service not configured. Please set OPENAI_API_KEY.'}), 500
+        except Exception as e:
+            import traceback
+            print(f"Error initializing AIGenerator: {str(e)}")
+            print(traceback.format_exc())
+            return jsonify({'error': f'Failed to initialize AI service: {str(e)}'}), 500
+        
+        # Generate job description
+        result = ai_generator.generate_job_description(requirements)
+        
+        if not result.get('success'):
+            return jsonify({'error': result.get('error', 'Failed to generate job description')}), 500
+        
+        return jsonify({
+            'message': 'Job description generated successfully',
+            'data': result['data']
+        }), 200
+        
+    except Exception as e:
+        import traceback
+        print(f"Error in generate_job_description endpoint: {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({'error': f'Failed to generate job description: {str(e)}'}), 500
+
+@job_descriptions_bp.route('/<int:jd_id>/enhance', methods=['POST'])
+@jwt_required()
+def enhance_job_description(jd_id):
+    """Enhance an existing job description using AI"""
+    try:
+        current_user_id = int(get_jwt_identity())
+        
+        jd = JobDescription.query.get(jd_id)
+        
+        if not jd:
+            return jsonify({'error': 'Job description not found'}), 404
+        
+        if jd.user_id != current_user_id:
+            return jsonify({'error': 'Unauthorized'}), 403
+        
+        # Initialize AI generator
+        try:
+            ai_generator = AIGenerator()
+        except ValueError as e:
+            return jsonify({'error': 'AI service not configured. Please set OPENAI_API_KEY.'}), 500
+        
+        # Enhance job description
+        result = ai_generator.enhance_job_description(jd.to_dict())
+        
+        if not result.get('success'):
+            return jsonify({'error': result.get('error', 'Failed to enhance job description')}), 500
+        
+        return jsonify({
+            'message': 'Job description enhanced successfully',
+            'data': result['data']
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': f'Failed to enhance job description: {str(e)}'}), 500

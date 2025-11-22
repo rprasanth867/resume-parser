@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import {
     Container, Box, Typography, Grid, Card, CardContent, Button,
     AppBar, Toolbar, IconButton, Dialog, DialogTitle, DialogContent,
-    DialogActions, TextField, Chip, Checkbox, FormControlLabel
+    DialogActions, TextField, Chip, Checkbox, FormControlLabel, CircularProgress,
+    Alert
 } from '@mui/material';
-import { ArrowBack, Add, Delete, Edit, Home } from '@mui/icons-material';
+import { ArrowBack, Add, Delete, Edit, Home, AutoAwesome } from '@mui/icons-material';
 import { jobDescriptionService } from '../services/jobDescriptionService';
 import { resumeService } from '../services/resumeService';
+import { aiService } from '../services/aiService';
 
 const JobDescriptionsPage = () => {
     const navigate = useNavigate();
@@ -15,9 +17,13 @@ const JobDescriptionsPage = () => {
     const [resumes, setResumes] = useState([]);
     const [openDialog, setOpenDialog] = useState(false);
     const [openMatchDialog, setOpenMatchDialog] = useState(false);
+    const [openAiDialog, setOpenAiDialog] = useState(false);
     const [selectedJD, setSelectedJD] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
     const [selectedResumes, setSelectedResumes] = useState([]);
+    const [aiRequirements, setAiRequirements] = useState('');
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [aiError, setAiError] = useState('');
     const [formData, setFormData] = useState({
         title: '',
         description: '',
@@ -130,6 +136,44 @@ const JobDescriptionsPage = () => {
         }
     };
 
+    const handleOpenAiGenerator = () => {
+        setAiRequirements('');
+        setAiError('');
+        setOpenAiDialog(true);
+    };
+
+    const handleGenerateWithAI = async () => {
+        if (!aiRequirements.trim()) {
+            setAiError('Please enter your requirements');
+            return;
+        }
+
+        setIsGenerating(true);
+        setAiError('');
+
+        try {
+            const result = await aiService.generateJobDescription(aiRequirements);
+            
+            // Populate form with AI-generated data
+            setFormData({
+                title: result.data.title || '',
+                description: result.data.description || '',
+                required_skills: result.data.required_skills ? result.data.required_skills.join(', ') : '',
+                experience_required: result.data.experience_required || ''
+            });
+
+            // Close AI dialog and open create dialog
+            setOpenAiDialog(false);
+            setIsEditing(false);
+            setOpenDialog(true);
+        } catch (error) {
+            console.error('Failed to generate job description:', error);
+            setAiError(error.response?.data?.error || 'Failed to generate job description. Please check if API key is configured.');
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
     return (
         <Box>
             <AppBar position="static">
@@ -143,6 +187,9 @@ const JobDescriptionsPage = () => {
                     <Typography variant="h6" sx={{ flexGrow: 1 }}>
                         Job Descriptions
                     </Typography>
+                    <Button color="inherit" startIcon={<AutoAwesome />} onClick={handleOpenAiGenerator} sx={{ mr: 1 }}>
+                        Generate with AI
+                    </Button>
                     <Button color="inherit" startIcon={<Add />} onClick={handleOpenCreate}>
                         Add New
                     </Button>
@@ -158,14 +205,23 @@ const JobDescriptionsPage = () => {
                                     <Typography variant="h6" color="text.secondary">
                                         No job descriptions yet
                                     </Typography>
-                                    <Button
-                                        variant="contained"
-                                        startIcon={<Add />}
-                                        onClick={handleOpenCreate}
-                                        sx={{ mt: 2 }}
-                                    >
-                                        Create Your First JD
-                                    </Button>
+                                    <Box sx={{ mt: 2, display: 'flex', gap: 2, justifyContent: 'center' }}>
+                                        <Button
+                                            variant="contained"
+                                            startIcon={<AutoAwesome />}
+                                            onClick={handleOpenAiGenerator}
+                                            color="primary"
+                                        >
+                                            Generate with AI
+                                        </Button>
+                                        <Button
+                                            variant="outlined"
+                                            startIcon={<Add />}
+                                            onClick={handleOpenCreate}
+                                        >
+                                            Create Manually
+                                        </Button>
+                                    </Box>
                                 </CardContent>
                             </Card>
                         </Grid>
@@ -251,6 +307,50 @@ const JobDescriptionsPage = () => {
                     <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
                     <Button onClick={handleSave} variant="contained">
                         {isEditing ? 'Update' : 'Create'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* AI Generator Dialog */}
+            <Dialog open={openAiDialog} onClose={() => !isGenerating && setOpenAiDialog(false)} maxWidth="md" fullWidth>
+                <DialogTitle>
+                    <Box display="flex" alignItems="center" gap={1}>
+                        <AutoAwesome color="primary" />
+                        Generate Job Description with AI
+                    </Box>
+                </DialogTitle>
+                <DialogContent>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2, mt: 1 }}>
+                        Describe the job role, required skills, experience level, and any other requirements. 
+                        The AI will generate a professional job description for you.
+                    </Typography>
+                    {aiError && (
+                        <Alert severity="error" sx={{ mb: 2 }}>
+                            {aiError}
+                        </Alert>
+                    )}
+                    <TextField
+                        fullWidth
+                        label="Job Requirements"
+                        value={aiRequirements}
+                        onChange={(e) => setAiRequirements(e.target.value)}
+                        multiline
+                        rows={8}
+                        placeholder="Example: We need a Senior Full Stack Developer with 5+ years of experience in React, Node.js, and AWS. Should have experience with microservices architecture and agile development. Bachelor's degree in Computer Science required."
+                        disabled={isGenerating}
+                    />
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setOpenAiDialog(false)} disabled={isGenerating}>
+                        Cancel
+                    </Button>
+                    <Button 
+                        onClick={handleGenerateWithAI} 
+                        variant="contained" 
+                        disabled={isGenerating || !aiRequirements.trim()}
+                        startIcon={isGenerating ? <CircularProgress size={20} /> : <AutoAwesome />}
+                    >
+                        {isGenerating ? 'Generating...' : 'Generate Job Description'}
                     </Button>
                 </DialogActions>
             </Dialog>
