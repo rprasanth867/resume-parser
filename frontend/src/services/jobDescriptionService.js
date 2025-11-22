@@ -16,6 +16,16 @@ export const jobDescriptionService = {
         return response.data;
     },
 
+    async updateJobDescription(jdId, data) {
+        const response = await api.put(`/job-descriptions/${jdId}`, data);
+        return response.data;
+    },
+
+    async matchResumes(jdId, resumeIds) {
+        const response = await api.post(`/job-descriptions/${jdId}/match`, { resume_ids: resumeIds });
+        return response.data;
+    },
+
     async matchResumeToJD(jdId, resumeId) {
         const response = await api.post(`/job-descriptions/${jdId}/match/${resumeId}`);
         return response.data;

@@ -4,7 +4,7 @@ import {
     Container, Box, Typography, Grid, Card, CardContent, Chip,
     AppBar, Toolbar, IconButton, LinearProgress, Divider
 } from '@mui/material';
-import { ArrowBack, CheckCircle, Cancel } from '@mui/icons-material';
+import { ArrowBack, CheckCircle, Cancel, Home } from '@mui/icons-material';
 import { jobDescriptionService } from '../services/jobDescriptionService';
 
 const MatchResultsPage = () => {
@@ -37,8 +37,11 @@ const MatchResultsPage = () => {
         <Box>
             <AppBar position="static">
                 <Toolbar>
-                    <IconButton edge="start" color="inherit" onClick={() => navigate('/dashboard')}>
+                    <IconButton edge="start" color="inherit" onClick={() => navigate('/dashboard')} sx={{ mr: 1 }}>
                         <ArrowBack />
+                    </IconButton>
+                    <IconButton color="inherit" onClick={() => navigate('/dashboard')} sx={{ mr: 1 }}>
+                        <Home />
                     </IconButton>
                     <Typography variant="h6">ATS Match Results</Typography>
                 </Toolbar>

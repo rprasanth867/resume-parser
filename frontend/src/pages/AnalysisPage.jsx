@@ -4,7 +4,7 @@ import {
     Container, Box, Paper, Typography, Grid, Chip, LinearProgress,
     AppBar, Toolbar, IconButton, Card, CardContent, Alert, Divider
 } from '@mui/material';
-import { ArrowBack, CheckCircle, Warning, Lightbulb } from '@mui/icons-material';
+import { ArrowBack, CheckCircle, Warning, Lightbulb, Home } from '@mui/icons-material';
 import { resumeService } from '../services/resumeService';
 
 const AnalysisPage = () => {
@@ -40,8 +40,11 @@ const AnalysisPage = () => {
             <Box>
                 <AppBar position="static">
                     <Toolbar>
-                        <IconButton edge="start" color="inherit" onClick={() => navigate('/dashboard')}>
+                        <IconButton edge="start" color="inherit" onClick={() => navigate('/dashboard')} sx={{ mr: 1 }}>
                             <ArrowBack />
+                        </IconButton>
+                        <IconButton color="inherit" onClick={() => navigate('/dashboard')} sx={{ mr: 1 }}>
+                            <Home />
                         </IconButton>
                         <Typography variant="h6">Resume Analysis</Typography>
                     </Toolbar>
@@ -105,8 +108,11 @@ const AnalysisPage = () => {
         <Box>
             <AppBar position="static">
                 <Toolbar>
-                    <IconButton edge="start" color="inherit" onClick={() => navigate('/dashboard')}>
+                    <IconButton edge="start" color="inherit" onClick={() => navigate('/dashboard')} sx={{ mr: 1 }}>
                         <ArrowBack />
+                    </IconButton>
+                    <IconButton color="inherit" onClick={() => navigate('/dashboard')} sx={{ mr: 1 }}>
+                        <Home />
                     </IconButton>
                     <Typography variant="h6">Resume Analysis</Typography>
                 </Toolbar>

@@ -81,6 +81,96 @@ def get_job_description(jd_id):
     except Exception as e:
         return jsonify({'error': f'Failed to get job description: {str(e)}'}), 500
 
+@job_descriptions_bp.route('/<int:jd_id>/match', methods=['POST'])
+@jwt_required()
+def match_resumes(jd_id):
+    """Match multiple resumes to a job description"""
+    try:
+        current_user_id = int(get_jwt_identity())
+        
+        jd = JobDescription.query.get(jd_id)
+        if not jd:
+            return jsonify({'error': 'Job description not found'}), 404
+            
+        if jd.user_id != current_user_id:
+            return jsonify({'error': 'Unauthorized'}), 403
+            
+        data = request.get_json()
+        resume_ids = data.get('resume_ids', [])
+        
+        if not resume_ids:
+            return jsonify({'error': 'No resumes selected'}), 400
+            
+        results = []
+        errors = []
+        
+        # Import here to avoid circular imports
+        from app.services.ats_scorer import ATSScorer
+        scorer = ATSScorer()
+        
+        for resume_id in resume_ids:
+            try:
+                resume = Resume.query.get(resume_id)
+                if not resume or resume.user_id != current_user_id:
+                    errors.append({'resume_id': resume_id, 'error': 'Resume not found or unauthorized'})
+                    continue
+                    
+                if resume.status != 'completed':
+                    errors.append({'resume_id': resume_id, 'error': 'Resume not processed yet'})
+                    continue
+                    
+                # Prepare resume data
+                resume_data = {
+                    'skills': resume.analysis.skills if resume.analysis else [],
+                    'experience': resume.analysis.experience if resume.analysis else [],
+                    'education': resume.analysis.education if resume.analysis else [],
+                    'parsed_text': resume.parsed_text or ''
+                }
+                
+                # Calculate match
+                match_result = scorer.calculate_match_score(resume_data, jd)
+                
+                # Check if match already exists
+                match = ResumeMatch.query.filter_by(
+                    resume_id=resume.id,
+                    job_description_id=jd.id
+                ).first()
+                
+                if not match:
+                    match = ResumeMatch(
+                        resume_id=resume.id,
+                        job_description_id=jd.id
+                    )
+                    db.session.add(match)
+                
+                # Update match data
+                match.match_score = match_result['overall_score']
+                match.skills_match_score = match_result['skills_match_score']
+                match.experience_match_score = match_result['experience_match_score']
+                match.education_match_score = match_result['education_match_score']
+                match.matched_skills = match_result['matched_skills']
+                match.missing_skills = match_result['missing_skills']
+                match.recommendations = match_result['recommendations']
+                
+                results.append({
+                    'resume_id': resume.id,
+                    'score': match_result['overall_score']
+                })
+                
+            except Exception as e:
+                errors.append({'resume_id': resume_id, 'error': str(e)})
+                
+        db.session.commit()
+        
+        return jsonify({
+            'message': f'Matched {len(results)} resumes',
+            'results': results,
+            'errors': errors
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': f'Failed to match resumes: {str(e)}'}), 500
+
 @job_descriptions_bp.route('/<int:jd_id>/match/<int:resume_id>', methods=['POST'])
 @jwt_required()
 def match_resume_to_jd(jd_id, resume_id):
@@ -144,6 +234,47 @@ def match_resume_to_jd(jd_id, resume_id):
         
     except Exception as e:
         return jsonify({'error': f'Failed to match resume: {str(e)}'}), 500
+
+@job_descriptions_bp.route('/<int:jd_id>', methods=['PUT'])
+@jwt_required()
+def update_job_description(jd_id):
+    """Update a job description"""
+    try:
+        current_user_id = int(get_jwt_identity())
+        
+        jd = JobDescription.query.get(jd_id)
+        
+        if not jd:
+            return jsonify({'error': 'Job description not found'}), 404
+        
+        if jd.user_id != current_user_id:
+            return jsonify({'error': 'Unauthorized'}), 403
+        
+        data = request.get_json()
+        
+        # Update fields
+        if 'title' in data:
+            jd.title = data['title']
+        if 'company' in data:
+            jd.company = data['company']
+        if 'description' in data:
+            jd.description = data['description']
+        if 'requirements' in data:
+            jd.requirements = data['requirements']
+        if 'location' in data:
+            jd.location = data['location']
+        if 'salary_range' in data:
+            jd.salary_range = data['salary_range']
+            
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Job description updated successfully',
+            'job_description': jd.to_dict()
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': f'Failed to update job description: {str(e)}'}), 500
 
 @job_descriptions_bp.route('/<int:jd_id>', methods=['DELETE'])
 @jwt_required()

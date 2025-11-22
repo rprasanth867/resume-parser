@@ -18,58 +18,81 @@ def allowed_file(filename):
 @resumes_bp.route('/upload', methods=['POST'])
 @jwt_required()
 def upload_resume():
-    """Upload a resume file"""
+    """Upload multiple resume files"""
     try:
         current_user_id = int(get_jwt_identity())
         
-        # Check if file is present
-        if 'file' not in request.files:
-            return jsonify({'error': 'No file provided'}), 400
+        # Check if files are present
+        if 'files' not in request.files:
+            return jsonify({'error': 'No files provided'}), 400
         
-        file = request.files['file']
+        files = request.files.getlist('files')
         
-        if file.filename == '':
-            return jsonify({'error': 'No file selected'}), 400
+        if not files or files[0].filename == '':
+            return jsonify({'error': 'No files selected'}), 400
+            
+        uploaded_resumes = []
+        errors = []
         
-        if not allowed_file(file.filename):
-            return jsonify({'error': 'File type not allowed. Please upload PDF or DOCX'}), 400
-        
-        # Secure filename
-        filename = secure_filename(file.filename)
-        file_ext = filename.rsplit('.', 1)[1].lower()
-        
-        # Create unique filename
         import uuid
-        unique_filename = f"{uuid.uuid4()}_{filename}"
-        file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], unique_filename)
         
-        # Save file
-        file.save(file_path)
-        file_size = os.path.getsize(file_path)
+        for file in files:
+            try:
+                if not file or file.filename == '':
+                    continue
+                    
+                if not allowed_file(file.filename):
+                    errors.append({'filename': file.filename, 'error': 'File type not allowed'})
+                    continue
+                
+                # Secure filename
+                filename = secure_filename(file.filename)
+                file_ext = filename.rsplit('.', 1)[1].lower()
+                
+                # Create unique filename
+                unique_filename = f"{uuid.uuid4()}_{filename}"
+                file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], unique_filename)
+                
+                # Save file
+                file.save(file_path)
+                file_size = os.path.getsize(file_path)
+                
+                # Create resume record
+                resume = Resume(
+                    user_id=current_user_id,
+                    filename=filename,
+                    file_path=file_path,
+                    file_size=file_size,
+                    file_type=file_ext,
+                    status='pending'
+                )
+                
+                db.session.add(resume)
+                db.session.commit()
+                
+                uploaded_resumes.append({
+                    'id': resume.id,
+                    'filename': resume.filename,
+                    'status': resume.status
+                })
+                
+                # Parse resume asynchronously
+                try:
+                    resume_parser.parse_resume(resume.id)
+                except Exception as e:
+                    print(f"Error parsing resume {resume.id}: {str(e)}")
+                    
+            except Exception as e:
+                errors.append({'filename': file.filename, 'error': str(e)})
+                continue
         
-        # Create resume record
-        resume = Resume(
-            user_id=current_user_id,
-            filename=filename,
-            file_path=file_path,
-            file_size=file_size,
-            file_type=file_ext,
-            status='pending'
-        )
-        
-        db.session.add(resume)
-        db.session.commit()
-        
-        # Parse resume asynchronously (in production, use Celery)
-        try:
-            resume_parser.parse_resume(resume.id)
-        except Exception as e:
-            print(f"Error parsing resume: {str(e)}")
-        
+        if not uploaded_resumes and errors:
+            return jsonify({'error': 'Failed to upload files', 'details': errors}), 400
+            
         return jsonify({
-            'message': 'Resume uploaded successfully',
-            'resume_id': resume.id,
-            'status': resume.status
+            'message': f'Successfully uploaded {len(uploaded_resumes)} resumes',
+            'resumes': uploaded_resumes,
+            'errors': errors
         }), 201
         
     except Exception as e:
@@ -80,7 +103,7 @@ def upload_resume():
 def get_resume_analysis(resume_id):
     """Get resume analysis"""
     try:
-        current_user_id = get_jwt_identity()
+        current_user_id = int(get_jwt_identity())
         
         resume = Resume.query.get(resume_id)
         
@@ -115,7 +138,7 @@ def get_resume_analysis(resume_id):
 def get_user_resumes():
     """Get all resumes for current user"""
     try:
-        current_user_id = get_jwt_identity()
+        current_user_id = int(get_jwt_identity())
         
         page = request.args.get('page', 1, type=int)
         limit = request.args.get('limit', 10, type=int)
@@ -150,7 +173,7 @@ def get_user_resumes():
 def delete_resume(resume_id):
     """Delete a resume"""
     try:
-        current_user_id = get_jwt_identity()
+        current_user_id = int(get_jwt_identity())
         
         resume = Resume.query.get(resume_id)
         
@@ -174,30 +197,3 @@ def delete_resume(resume_id):
         
     except Exception as e:
         return jsonify({'error': f'Failed to delete resume: {str(e)}'}), 500
-
-@resumes_bp.route('/<int:resume_id>/download', methods=['GET'])
-@jwt_required()
-def download_resume(resume_id):
-    """Download resume file"""
-    try:
-        current_user_id = get_jwt_identity()
-        
-        resume = Resume.query.get(resume_id)
-        
-        if not resume:
-            return jsonify({'error': 'Resume not found'}), 404
-        
-        if resume.user_id != current_user_id:
-            return jsonify({'error': 'Unauthorized'}), 403
-        
-        if not os.path.exists(resume.file_path):
-            return jsonify({'error': 'File not found'}), 404
-        
-        return send_file(
-            resume.file_path,
-            as_attachment=True,
-            download_name=resume.filename
-        )
-        
-    except Exception as e:
-        return jsonify({'error': f'Failed to download resume: {str(e)}'}), 500

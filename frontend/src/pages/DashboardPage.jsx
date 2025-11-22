@@ -6,7 +6,7 @@ import {
 } from '@mui/material';
 import {
     CloudUpload, Description, AccountCircle, Logout,
-    Assessment, Work
+    Assessment, Work, Home
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import { resumeService } from '../services/resumeService';
@@ -53,6 +53,13 @@ const DashboardPage = () => {
                     <Typography variant="h6" sx={{ flexGrow: 1 }}>
                         Resume Parser
                     </Typography>
+                    <IconButton
+                        color="inherit"
+                        onClick={() => navigate('/dashboard')}
+                        sx={{ mr: 1 }}
+                    >
+                        <Home />
+                    </IconButton>
                     <IconButton
                         color="inherit"
                         onClick={(e) => setAnchorEl(e.currentTarget)}

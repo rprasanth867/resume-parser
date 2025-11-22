@@ -1,9 +1,17 @@
 import api from './api';
 
 export const resumeService = {
-    async uploadResume(file) {
+    async uploadResume(files) {
         const formData = new FormData();
-        formData.append('file', file);
+
+        // Handle both single file and array of files
+        if (Array.isArray(files)) {
+            files.forEach(file => {
+                formData.append('files', file);
+            });
+        } else {
+            formData.append('files', files);
+        }
 
         const response = await api.post('/resumes/upload', formData, {
             headers: {
@@ -31,10 +39,5 @@ export const resumeService = {
         return response.data;
     },
 
-    async downloadResume(resumeId) {
-        const response = await api.get(`/resumes/${resumeId}/download`, {
-            responseType: 'blob'
-        });
-        return response.data;
-    }
+
 };

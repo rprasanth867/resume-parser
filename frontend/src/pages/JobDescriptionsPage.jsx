@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import {
     Container, Box, Typography, Grid, Card, CardContent, Button,
     AppBar, Toolbar, IconButton, Dialog, DialogTitle, DialogContent,
-    DialogActions, TextField, Chip
+    DialogActions, TextField, Chip, Checkbox, FormControlLabel
 } from '@mui/material';
-import { ArrowBack, Add, Delete } from '@mui/icons-material';
+import { ArrowBack, Add, Delete, Edit, Home } from '@mui/icons-material';
 import { jobDescriptionService } from '../services/jobDescriptionService';
 import { resumeService } from '../services/resumeService';
 
@@ -16,6 +16,8 @@ const JobDescriptionsPage = () => {
     const [openDialog, setOpenDialog] = useState(false);
     const [openMatchDialog, setOpenMatchDialog] = useState(false);
     const [selectedJD, setSelectedJD] = useState(null);
+    const [isEditing, setIsEditing] = useState(false);
+    const [selectedResumes, setSelectedResumes] = useState([]);
     const [formData, setFormData] = useState({
         title: '',
         description: '',
@@ -40,7 +42,25 @@ const JobDescriptionsPage = () => {
         }
     };
 
-    const handleCreate = async () => {
+    const handleOpenCreate = () => {
+        setIsEditing(false);
+        setFormData({ title: '', description: '', required_skills: '', experience_required: '' });
+        setOpenDialog(true);
+    };
+
+    const handleEdit = (jd) => {
+        setIsEditing(true);
+        setSelectedJD(jd);
+        setFormData({
+            title: jd.title,
+            description: jd.description,
+            required_skills: jd.required_skills ? jd.required_skills.join(', ') : '',
+            experience_required: jd.experience_required || ''
+        });
+        setOpenDialog(true);
+    };
+
+    const handleSave = async () => {
         try {
             const data = {
                 title: formData.title,
@@ -48,12 +68,17 @@ const JobDescriptionsPage = () => {
                 required_skills: formData.required_skills.split(',').map(s => s.trim()).filter(Boolean),
                 experience_required: formData.experience_required
             };
-            await jobDescriptionService.createJobDescription(data);
+
+            if (isEditing && selectedJD) {
+                await jobDescriptionService.updateJobDescription(selectedJD.id, data);
+            } else {
+                await jobDescriptionService.createJobDescription(data);
+            }
+
             setOpenDialog(false);
-            setFormData({ title: '', description: '', required_skills: '', experience_required: '' });
             loadData();
         } catch (error) {
-            alert('Failed to create job description');
+            alert(`Failed to ${isEditing ? 'update' : 'create'} job description`);
         }
     };
 
@@ -68,13 +93,40 @@ const JobDescriptionsPage = () => {
         }
     };
 
-    const handleMatch = async (resumeId) => {
+    const handleOpenMatch = (jd) => {
+        setSelectedJD(jd);
+        setSelectedResumes([]);
+        setOpenMatchDialog(true);
+    };
+
+    const handleToggleResume = (resumeId) => {
+        setSelectedResumes(prev =>
+            prev.includes(resumeId)
+                ? prev.filter(id => id !== resumeId)
+                : [...prev, resumeId]
+        );
+    };
+
+    const handleSelectAll = (event) => {
+        if (event.target.checked) {
+            setSelectedResumes(resumes.map(r => r.id));
+        } else {
+            setSelectedResumes([]);
+        }
+    };
+
+    const handleMatch = async () => {
+        if (selectedResumes.length === 0) {
+            alert('Please select at least one resume');
+            return;
+        }
+
         try {
-            const result = await jobDescriptionService.matchResumeToJD(selectedJD.id, resumeId);
+            await jobDescriptionService.matchResumes(selectedJD.id, selectedResumes);
             setOpenMatchDialog(false);
             navigate('/matches');
         } catch (error) {
-            alert('Failed to match resume');
+            alert('Failed to match resumes');
         }
     };
 
@@ -82,13 +134,16 @@ const JobDescriptionsPage = () => {
         <Box>
             <AppBar position="static">
                 <Toolbar>
-                    <IconButton edge="start" color="inherit" onClick={() => navigate('/dashboard')}>
+                    <IconButton edge="start" color="inherit" onClick={() => navigate('/dashboard')} sx={{ mr: 1 }}>
                         <ArrowBack />
+                    </IconButton>
+                    <IconButton color="inherit" onClick={() => navigate('/dashboard')} sx={{ mr: 1 }}>
+                        <Home />
                     </IconButton>
                     <Typography variant="h6" sx={{ flexGrow: 1 }}>
                         Job Descriptions
                     </Typography>
-                    <Button color="inherit" startIcon={<Add />} onClick={() => setOpenDialog(true)}>
+                    <Button color="inherit" startIcon={<Add />} onClick={handleOpenCreate}>
                         Add New
                     </Button>
                 </Toolbar>
@@ -106,7 +161,7 @@ const JobDescriptionsPage = () => {
                                     <Button
                                         variant="contained"
                                         startIcon={<Add />}
-                                        onClick={() => setOpenDialog(true)}
+                                        onClick={handleOpenCreate}
                                         sx={{ mt: 2 }}
                                     >
                                         Create Your First JD
@@ -136,13 +191,13 @@ const JobDescriptionsPage = () => {
                                             <Button
                                                 size="small"
                                                 variant="contained"
-                                                onClick={() => {
-                                                    setSelectedJD(jd);
-                                                    setOpenMatchDialog(true);
-                                                }}
+                                                onClick={() => handleOpenMatch(jd)}
                                             >
                                                 Match Resume
                                             </Button>
+                                            <IconButton size="small" color="primary" onClick={() => handleEdit(jd)}>
+                                                <Edit />
+                                            </IconButton>
                                             <IconButton size="small" color="error" onClick={() => handleDelete(jd.id)}>
                                                 <Delete />
                                             </IconButton>
@@ -155,9 +210,9 @@ const JobDescriptionsPage = () => {
                 </Grid>
             </Container>
 
-            {/* Create JD Dialog */}
+            {/* Create/Edit JD Dialog */}
             <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth>
-                <DialogTitle>Create Job Description</DialogTitle>
+                <DialogTitle>{isEditing ? 'Edit Job Description' : 'Create Job Description'}</DialogTitle>
                 <DialogContent>
                     <TextField
                         fullWidth
@@ -194,32 +249,57 @@ const JobDescriptionsPage = () => {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
-                    <Button onClick={handleCreate} variant="contained">Create</Button>
+                    <Button onClick={handleSave} variant="contained">
+                        {isEditing ? 'Update' : 'Create'}
+                    </Button>
                 </DialogActions>
             </Dialog>
 
             {/* Match Resume Dialog */}
-            <Dialog open={openMatchDialog} onClose={() => setOpenMatchDialog(false)}>
-                <DialogTitle>Select Resume to Match</DialogTitle>
+            <Dialog open={openMatchDialog} onClose={() => setOpenMatchDialog(false)} maxWidth="sm" fullWidth>
+                <DialogTitle>Select Resumes to Match</DialogTitle>
                 <DialogContent>
                     {resumes.length === 0 ? (
                         <Typography>No completed resumes available</Typography>
                     ) : (
-                        resumes.map((resume) => (
-                            <Button
-                                key={resume.id}
-                                fullWidth
-                                variant="outlined"
-                                sx={{ mb: 1 }}
-                                onClick={() => handleMatch(resume.id)}
-                            >
-                                {resume.filename}
-                            </Button>
-                        ))
+                        <Box>
+                            <FormControlLabel
+                                control={
+                                    <Checkbox
+                                        checked={selectedResumes.length === resumes.length}
+                                        indeterminate={selectedResumes.length > 0 && selectedResumes.length < resumes.length}
+                                        onChange={handleSelectAll}
+                                    />
+                                }
+                                label="Select All"
+                                sx={{ mb: 1, borderBottom: 1, borderColor: 'divider', width: '100%' }}
+                            />
+                            {resumes.map((resume) => (
+                                <Box key={resume.id} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                    <FormControlLabel
+                                        control={
+                                            <Checkbox
+                                                checked={selectedResumes.includes(resume.id)}
+                                                onChange={() => handleToggleResume(resume.id)}
+                                            />
+                                        }
+                                        label={resume.filename}
+                                        sx={{ flexGrow: 1 }}
+                                    />
+                                </Box>
+                            ))}
+                        </Box>
                     )}
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setOpenMatchDialog(false)}>Cancel</Button>
+                    <Button
+                        onClick={handleMatch}
+                        variant="contained"
+                        disabled={selectedResumes.length === 0}
+                    >
+                        Match Selected ({selectedResumes.length})
+                    </Button>
                 </DialogActions>
             </Dialog>
         </Box>

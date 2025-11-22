@@ -5,7 +5,7 @@ import {
     TableContainer, TableHead, TableRow, Paper, IconButton,
     AppBar, Toolbar, Chip, Button
 } from '@mui/material';
-import { ArrowBack, Visibility, Delete } from '@mui/icons-material';
+import { ArrowBack, Visibility, Delete, Home } from '@mui/icons-material';
 import { resumeService } from '../services/resumeService';
 
 const HistoryPage = () => {
@@ -39,6 +39,8 @@ const HistoryPage = () => {
         }
     };
 
+
+
     const getStatusColor = (status) => {
         switch (status) {
             case 'completed': return 'success';
@@ -52,8 +54,11 @@ const HistoryPage = () => {
         <Box>
             <AppBar position="static">
                 <Toolbar>
-                    <IconButton edge="start" color="inherit" onClick={() => navigate('/dashboard')}>
+                    <IconButton edge="start" color="inherit" onClick={() => navigate('/dashboard')} sx={{ mr: 1 }}>
                         <ArrowBack />
+                    </IconButton>
+                    <IconButton color="inherit" onClick={() => navigate('/dashboard')} sx={{ mr: 1 }}>
+                        <Home />
                     </IconButton>
                     <Typography variant="h6">Resume History</Typography>
                 </Toolbar>
@@ -112,6 +117,7 @@ const HistoryPage = () => {
                                             >
                                                 <Visibility />
                                             </IconButton>
+
                                             <IconButton
                                                 color="error"
                                                 onClick={() => handleDelete(resume.id)}
