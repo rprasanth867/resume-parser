@@ -6,6 +6,7 @@ import {
 } from '@mui/material';
 import { ArrowBack, CheckCircle, Warning, Lightbulb, Home } from '@mui/icons-material';
 import { resumeService } from '../services/resumeService';
+import StickyLogo from '../components/StickyLogo';
 
 const AnalysisPage = () => {
     const { resumeId } = useParams();
@@ -38,7 +39,7 @@ const AnalysisPage = () => {
     if (loading) {
         return (
             <Box>
-                <AppBar position="static">
+                <AppBar position="sticky" elevation={1} sx={{ top: 0, zIndex: 1100 }}>
                     <Toolbar>
                         <IconButton edge="start" color="inherit" onClick={() => navigate('/dashboard')} sx={{ mr: 1 }}>
                             <ArrowBack />
@@ -53,6 +54,7 @@ const AnalysisPage = () => {
                     <LinearProgress />
                     <Typography align="center" sx={{ mt: 2 }}>Loading analysis...</Typography>
                 </Container>
+                <StickyLogo />
             </Box>
         );
     }
@@ -60,7 +62,7 @@ const AnalysisPage = () => {
     if (error) {
         return (
             <Box>
-                <AppBar position="static">
+                <AppBar position="sticky" elevation={1} sx={{ top: 0, zIndex: 1100 }}>
                     <Toolbar>
                         <IconButton edge="start" color="inherit" onClick={() => navigate('/dashboard')}>
                             <ArrowBack />
@@ -71,6 +73,7 @@ const AnalysisPage = () => {
                 <Container maxWidth="lg" sx={{ mt: 4 }}>
                     <Alert severity="error">{error}</Alert>
                 </Container>
+                <StickyLogo />
             </Box>
         );
     }
@@ -78,7 +81,7 @@ const AnalysisPage = () => {
     if (analysis?.resume?.status !== 'completed') {
         return (
             <Box>
-                <AppBar position="static">
+                <AppBar position="sticky" elevation={1} sx={{ top: 0, zIndex: 1100 }}>
                     <Toolbar>
                         <IconButton edge="start" color="inherit" onClick={() => navigate('/dashboard')}>
                             <ArrowBack />
@@ -95,6 +98,7 @@ const AnalysisPage = () => {
                         </Typography>
                     </Paper>
                 </Container>
+                <StickyLogo />
             </Box>
         );
     }
@@ -106,7 +110,7 @@ const AnalysisPage = () => {
 
     return (
         <Box>
-            <AppBar position="static">
+            <AppBar position="sticky" elevation={1} sx={{ top: 0, zIndex: 1100 }}>
                 <Toolbar>
                     <IconButton edge="start" color="inherit" onClick={() => navigate('/dashboard')} sx={{ mr: 1 }}>
                         <ArrowBack />
@@ -243,6 +247,7 @@ const AnalysisPage = () => {
                     )}
                 </Grid>
             </Container>
+            <StickyLogo />
         </Box>
     );
 };

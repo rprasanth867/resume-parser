@@ -11,6 +11,7 @@ import { ArrowBack, Add, Delete, Edit, Home, AutoAwesome, Search, PersonSearch, 
 import { jobDescriptionService } from '../services/jobDescriptionService';
 import { resumeService } from '../services/resumeService';
 import { aiService } from '../services/aiService';
+import StickyLogo from '../components/StickyLogo';
 
 const JobDescriptionsPage = () => {
     const navigate = useNavigate();
@@ -27,6 +28,7 @@ const JobDescriptionsPage = () => {
     const [aiRequirements, setAiRequirements] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
     const [isSearching, setIsSearching] = useState(false);
+    const [isMatching, setIsMatching] = useState(false);
     const [aiError, setAiError] = useState('');
     const [searchResults, setSearchResults] = useState(null);
     const [findCandidateError, setFindCandidateError] = useState('');
@@ -196,12 +198,15 @@ const JobDescriptionsPage = () => {
             return;
         }
 
+        setIsMatching(true);
         try {
             await jobDescriptionService.matchResumes(selectedJD.id, selectedResumes);
             setOpenMatchDialog(false);
             navigate('/matches');
         } catch (error) {
             alert('Failed to match resumes');
+        } finally {
+            setIsMatching(false);
         }
     };
 
@@ -297,7 +302,7 @@ const JobDescriptionsPage = () => {
 
     return (
         <Box>
-            <AppBar position="static">
+            <AppBar position="sticky" elevation={1} sx={{ top: 0, zIndex: 1100 }}>
                 <Toolbar>
                     <IconButton edge="start" color="inherit" onClick={() => navigate('/dashboard')} sx={{ mr: 1 }}>
                         <ArrowBack />
@@ -594,10 +599,20 @@ const JobDescriptionsPage = () => {
             </Dialog>
 
             {/* Match Resume Dialog */}
-            <Dialog open={openMatchDialog} onClose={() => setOpenMatchDialog(false)} maxWidth="sm" fullWidth>
+            <Dialog open={openMatchDialog} onClose={() => !isMatching && setOpenMatchDialog(false)} maxWidth="sm" fullWidth>
                 <DialogTitle>Select Resumes to Match</DialogTitle>
                 <DialogContent>
-                    {resumes.length === 0 ? (
+                    {isMatching ? (
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 4 }}>
+                            <CircularProgress size={50} sx={{ mb: 2 }} />
+                            <Typography variant="h6" gutterBottom>
+                                Matching Resumes with AI...
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                                This may take a few moments. Please wait.
+                            </Typography>
+                        </Box>
+                    ) : resumes.length === 0 ? (
                         <Typography>No completed resumes available</Typography>
                     ) : (
                         <Box>
@@ -630,13 +645,14 @@ const JobDescriptionsPage = () => {
                     )}
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setOpenMatchDialog(false)}>Cancel</Button>
+                    <Button onClick={() => setOpenMatchDialog(false)} disabled={isMatching}>Cancel</Button>
                     <Button
                         onClick={handleMatch}
                         variant="contained"
-                        disabled={selectedResumes.length === 0}
+                        disabled={selectedResumes.length === 0 || isMatching}
+                        startIcon={isMatching ? <CircularProgress size={20} /> : null}
                     >
-                        Match Selected ({selectedResumes.length})
+                        {isMatching ? 'Matching...' : `Match Selected (${selectedResumes.length})`}
                     </Button>
                 </DialogActions>
             </Dialog>
@@ -825,6 +841,7 @@ const JobDescriptionsPage = () => {
                     )}
                 </DialogActions>
             </Dialog>
+            <StickyLogo />
         </Box>
     );
 };

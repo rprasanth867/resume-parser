@@ -7,6 +7,7 @@ import {
 } from '@mui/material';
 import { ArrowBack, CheckCircle, Cancel, Home, ExpandMore, School, Business, Schedule, Psychology } from '@mui/icons-material';
 import { jobDescriptionService } from '../services/jobDescriptionService';
+import StickyLogo from '../components/StickyLogo';
 
 const MatchResultsPage = () => {
     const navigate = useNavigate();
@@ -36,7 +37,7 @@ const MatchResultsPage = () => {
 
     return (
         <Box>
-            <AppBar position="static">
+            <AppBar position="sticky" elevation={1} sx={{ top: 0, zIndex: 1100 }}>
                 <Toolbar>
                     <IconButton edge="start" color="inherit" onClick={() => navigate('/dashboard')} sx={{ mr: 1 }}>
                         <ArrowBack />
@@ -401,6 +402,7 @@ const MatchResultsPage = () => {
                     </Grid>
                 )}
             </Container>
+            <StickyLogo />
         </Box>
     );
 };

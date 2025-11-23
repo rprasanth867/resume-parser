@@ -7,6 +7,7 @@ import {
 } from '@mui/material';
 import { ArrowBack, Visibility, Delete, Home } from '@mui/icons-material';
 import { resumeService } from '../services/resumeService';
+import StickyLogo from '../components/StickyLogo';
 
 const HistoryPage = () => {
     const navigate = useNavigate();
@@ -52,7 +53,7 @@ const HistoryPage = () => {
 
     return (
         <Box>
-            <AppBar position="static">
+            <AppBar position="sticky" elevation={1} sx={{ top: 0, zIndex: 1100 }}>
                 <Toolbar>
                     <IconButton edge="start" color="inherit" onClick={() => navigate('/dashboard')} sx={{ mr: 1 }}>
                         <ArrowBack />
@@ -132,6 +133,7 @@ const HistoryPage = () => {
                     </Table>
                 </TableContainer>
             </Container>
+            <StickyLogo />
         </Box>
     );
 };
