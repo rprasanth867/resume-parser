@@ -10,9 +10,9 @@ class CandidateFinder:
     """Service for finding candidates from job portals using AI-powered search"""
     
     def __init__(self):
-        api_key = os.getenv('GROQ_API_KEY')
+        api_key = os.getenv('KEY')
         if not api_key:
-            raise ValueError("GROQ_API_KEY environment variable is not set")
+            raise ValueError("KEY environment variable is not set")
         
         self.client = Groq(api_key=api_key)
         logger.info("CandidateFinder initialized with Groq AI")

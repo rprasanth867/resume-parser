@@ -6,9 +6,9 @@ class AIGenerator:
     """Service for generating job descriptions using Groq"""
     
     def __init__(self):
-        api_key = os.getenv('GROQ_API_KEY')
+        api_key = os.getenv('KEY')
         if not api_key:
-            raise ValueError("GROQ_API_KEY environment variable is not set")
+            raise ValueError("KEY environment variable is not set")
         
         # Initialize Groq client
         self.client = Groq(api_key=api_key)
