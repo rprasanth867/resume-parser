@@ -9,9 +9,9 @@ class AIATSScorer:
     """Advanced ATS Scorer using AI for comprehensive resume evaluation"""
     
     def __init__(self):
-        api_key = os.getenv('KEY')
+        api_key = os.getenv('GROQ_API_KEY')
         if not api_key:
-            raise ValueError("KEY environment variable is not set")
+            raise ValueError("GROQ_API_KEY environment variable is not set")
         
         self.client = Groq(api_key=api_key)
         logger.info("AIATSScorer initialized with Groq AI")

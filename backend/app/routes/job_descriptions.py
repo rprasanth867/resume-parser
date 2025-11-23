@@ -482,7 +482,7 @@ def find_candidates(jd_id):
                 candidate_finder = CandidateFinder()
             except ValueError as e:
                 logger.error(f"Failed to initialize CandidateFinder: {str(e)}")
-                return jsonify({'error': 'AI service not configured. Please set KEY.'}), 500
+                return jsonify({'error': 'AI service not configured. Please set GROQ_API_KEY.'}), 500
         
         result = candidate_finder.search_candidates(jd.to_dict(), platforms)
         
