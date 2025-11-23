@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Container, Box, Typography, Grid, Card, CardContent, Chip,
-    AppBar, Toolbar, IconButton, LinearProgress, Divider
+    AppBar, Toolbar, IconButton, LinearProgress, Divider, Accordion,
+    AccordionSummary, AccordionDetails, Badge
 } from '@mui/material';
-import { ArrowBack, CheckCircle, Cancel, Home } from '@mui/icons-material';
+import { ArrowBack, CheckCircle, Cancel, Home, ExpandMore, School, Business, Schedule, Psychology } from '@mui/icons-material';
 import { jobDescriptionService } from '../services/jobDescriptionService';
 
 const MatchResultsPage = () => {
@@ -118,6 +119,193 @@ const MatchResultsPage = () => {
 
                                                 <Divider sx={{ my: 2 }} />
 
+                                                {/* AI-Powered Detailed Breakdown */}
+                                                {match.is_ai_scored && match.ai_breakdown && (
+                                                    <Box sx={{ mb: 2 }}>
+                                                        <Badge badgeContent="AI" color="primary" sx={{ mb: 2 }}>
+                                                            <Typography variant="subtitle1" sx={{ fontWeight: 'bold', pr: 3 }}>
+                                                                Detailed Score Breakdown
+                                                            </Typography>
+                                                        </Badge>
+                                                        
+                                                        <Grid container spacing={1} sx={{ mt: 1 }}>
+                                                            {/* Academic Institution */}
+                                                            {match.ai_breakdown.breakdown?.academic_institution && (
+                                                                <Grid item xs={12} sm={6}>
+                                                                    <Card variant="outlined" sx={{ p: 1.5, height: '100%' }}>
+                                                                        <Box display="flex" alignItems="center" gap={1}>
+                                                                            <School color="primary" fontSize="small" />
+                                                                            <Typography variant="caption" color="text.secondary">
+                                                                                Academic Institution (10%)
+                                                                            </Typography>
+                                                                        </Box>
+                                                                        <Typography variant="h6" sx={{ mt: 1 }}>
+                                                                            {match.ai_breakdown.breakdown.academic_institution.raw_score}/10
+                                                                        </Typography>
+                                                                        <Typography variant="caption">
+                                                                            {match.ai_breakdown.breakdown.academic_institution.college_name}
+                                                                        </Typography>
+                                                                        <Typography variant="caption" display="block" color="text.secondary">
+                                                                            {match.ai_breakdown.breakdown.academic_institution.tier}
+                                                                        </Typography>
+                                                                    </Card>
+                                                                </Grid>
+                                                            )}
+                                                            
+                                                            {/* Academic Score */}
+                                                            {match.ai_breakdown.breakdown?.academic_performance && (
+                                                                <Grid item xs={12} sm={6}>
+                                                                    <Card variant="outlined" sx={{ p: 1.5, height: '100%' }}>
+                                                                        <Box display="flex" alignItems="center" gap={1}>
+                                                                            <Psychology color="secondary" fontSize="small" />
+                                                                            <Typography variant="caption" color="text.secondary">
+                                                                                Academic Score (15%)
+                                                                            </Typography>
+                                                                        </Box>
+                                                                        <Typography variant="h6" sx={{ mt: 1 }}>
+                                                                            {match.ai_breakdown.breakdown.academic_performance.normalized_score?.toFixed(1)}/10
+                                                                        </Typography>
+                                                                        <Typography variant="caption">
+                                                                            {match.ai_breakdown.breakdown.academic_performance.cgpa 
+                                                                                ? `CGPA: ${match.ai_breakdown.breakdown.academic_performance.cgpa}`
+                                                                                : `${match.ai_breakdown.breakdown.academic_performance.percentage}%`}
+                                                                        </Typography>
+                                                                    </Card>
+                                                                </Grid>
+                                                            )}
+                                                            
+                                                            {/* Company Quality */}
+                                                            {match.ai_breakdown.breakdown?.company_quality && (
+                                                                <Grid item xs={12} sm={6}>
+                                                                    <Card variant="outlined" sx={{ p: 1.5, height: '100%' }}>
+                                                                        <Box display="flex" alignItems="center" gap={1}>
+                                                                            <Business color="success" fontSize="small" />
+                                                                            <Typography variant="caption" color="text.secondary">
+                                                                                Company Quality (20%)
+                                                                            </Typography>
+                                                                        </Box>
+                                                                        <Typography variant="h6" sx={{ mt: 1 }}>
+                                                                            {match.ai_breakdown.breakdown.company_quality.average_score?.toFixed(1)}/10
+                                                                        </Typography>
+                                                                        <Typography variant="caption" display="block">
+                                                                            {match.ai_breakdown.breakdown.company_quality.companies?.length || 0} companies
+                                                                        </Typography>
+                                                                        <Typography variant="caption" color="text.secondary">
+                                                                            {match.ai_breakdown.breakdown.company_quality.companies?.[0]?.name || 'N/A'}
+                                                                        </Typography>
+                                                                    </Card>
+                                                                </Grid>
+                                                            )}
+                                                            
+                                                            {/* Job Stability */}
+                                                            {match.ai_breakdown.breakdown?.job_stability && (
+                                                                <Grid item xs={12} sm={6}>
+                                                                    <Card variant="outlined" sx={{ p: 1.5, height: '100%' }}>
+                                                                        <Box display="flex" alignItems="center" gap={1}>
+                                                                            <Schedule color="warning" fontSize="small" />
+                                                                            <Typography variant="caption" color="text.secondary">
+                                                                                Job Stability (25%)
+                                                                            </Typography>
+                                                                        </Box>
+                                                                        <Typography variant="h6" sx={{ mt: 1 }}>
+                                                                            {match.ai_breakdown.breakdown.job_stability.raw_score}/10
+                                                                        </Typography>
+                                                                        <Typography variant="caption">
+                                                                            Avg: {match.ai_breakdown.breakdown.job_stability.average_tenure_years?.toFixed(1)} years
+                                                                        </Typography>
+                                                                    </Card>
+                                                                </Grid>
+                                                            )}
+                                                            
+                                                            {/* Skills Match */}
+                                                            {match.ai_breakdown.breakdown?.skills_match && (
+                                                                <Grid item xs={12} sm={6}>
+                                                                    <Card variant="outlined" sx={{ p: 1.5, height: '100%' }}>
+                                                                        <Box display="flex" alignItems="center" gap={1}>
+                                                                            <Psychology color="success" fontSize="small" />
+                                                                            <Typography variant="caption" color="text.secondary">
+                                                                                Skills Match (30%)
+                                                                            </Typography>
+                                                                        </Box>
+                                                                        <Typography variant="h6" sx={{ mt: 1 }}>
+                                                                            {match.ai_breakdown.breakdown.skills_match.raw_score}/10
+                                                                        </Typography>
+                                                                        <Typography variant="caption" display="block">
+                                                                            {match.ai_breakdown.breakdown.skills_match.match_percentage}% Match
+                                                                        </Typography>
+                                                                        <Box sx={{ mt: 0.5 }}>
+                                                                            {match.ai_breakdown.breakdown.skills_match.matched_skills && 
+                                                                             match.ai_breakdown.breakdown.skills_match.matched_skills.slice(0, 3).map((skillObj, idx) => (
+                                                                                <Chip 
+                                                                                    key={idx}
+                                                                                    label={typeof skillObj === 'string' ? skillObj : `${skillObj.skill} (${skillObj.weight}%)`}
+                                                                                    size="small"
+                                                                                    sx={{ mr: 0.5, mt: 0.5, fontSize: '0.65rem' }}
+                                                                                />
+                                                                            ))}
+                                                                            {match.ai_breakdown.breakdown.skills_match.matched_skills && 
+                                                                             match.ai_breakdown.breakdown.skills_match.matched_skills.length > 3 && (
+                                                                                <Chip 
+                                                                                    label={`+${match.ai_breakdown.breakdown.skills_match.matched_skills.length - 3}`}
+                                                                                    size="small"
+                                                                                    sx={{ mt: 0.5, fontSize: '0.65rem' }}
+                                                                                />
+                                                                            )}
+                                                                        </Box>
+                                                                    </Card>
+                                                                </Grid>
+                                                            )}
+                                                        </Grid>
+
+                                                        {/* Full Details Accordion */}
+                                                        <Accordion sx={{ mt: 2 }}>
+                                                            <AccordionSummary expandIcon={<ExpandMore />}>
+                                                                <Typography variant="body2">View Complete Analysis</Typography>
+                                                            </AccordionSummary>
+                                                            <AccordionDetails>
+                                                                {match.ai_breakdown.recommendation && (
+                                                                    <Box sx={{ mb: 2 }}>
+                                                                        <Typography variant="subtitle2" gutterBottom>
+                                                                            Overall Recommendation
+                                                                        </Typography>
+                                                                        <Typography variant="body2">
+                                                                            {match.ai_breakdown.recommendation}
+                                                                        </Typography>
+                                                                    </Box>
+                                                                )}
+                                                                
+                                                                {match.ai_breakdown.strengths && match.ai_breakdown.strengths.length > 0 && (
+                                                                    <Box sx={{ mb: 2 }}>
+                                                                        <Typography variant="subtitle2" gutterBottom color="success.main">
+                                                                            Strengths
+                                                                        </Typography>
+                                                                        {match.ai_breakdown.strengths.map((strength, idx) => (
+                                                                            <Typography key={idx} variant="body2" sx={{ mb: 0.5 }}>
+                                                                                ✓ {strength}
+                                                                            </Typography>
+                                                                        ))}
+                                                                    </Box>
+                                                                )}
+                                                                
+                                                                {match.ai_breakdown.areas_for_improvement && match.ai_breakdown.areas_for_improvement.length > 0 && (
+                                                                    <Box>
+                                                                        <Typography variant="subtitle2" gutterBottom color="warning.main">
+                                                                            Areas for Improvement
+                                                                        </Typography>
+                                                                        {match.ai_breakdown.areas_for_improvement.map((area, idx) => (
+                                                                            <Typography key={idx} variant="body2" sx={{ mb: 0.5 }}>
+                                                                                → {area}
+                                                                            </Typography>
+                                                                        ))}
+                                                                    </Box>
+                                                                )}
+                                                            </AccordionDetails>
+                                                        </Accordion>
+                                                    </Box>
+                                                )}
+
+                                                <Divider sx={{ my: 2 }} />
+
                                                 {/* Matched Skills */}
                                                 {match.matched_skills && match.matched_skills.length > 0 && (
                                                     <Box sx={{ mb: 2 }}>
@@ -126,9 +314,19 @@ const MatchResultsPage = () => {
                                                             Matched Skills
                                                         </Typography>
                                                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                                                            {match.matched_skills.map((skill, idx) => (
-                                                                <Chip key={idx} label={skill} size="small" color="success" />
-                                                            ))}
+                                                            {match.matched_skills.map((skill, idx) => {
+                                                                // Handle both string format and object format {skill, weight, has_skill}
+                                                                const skillName = typeof skill === 'string' ? skill : skill.skill;
+                                                                const skillWeight = typeof skill === 'object' && skill.weight ? ` (${skill.weight}%)` : '';
+                                                                return (
+                                                                    <Chip 
+                                                                        key={idx} 
+                                                                        label={`${skillName}${skillWeight}`} 
+                                                                        size="small" 
+                                                                        color="success" 
+                                                                    />
+                                                                );
+                                                            })}
                                                         </Box>
                                                     </Box>
                                                 )}
@@ -141,9 +339,19 @@ const MatchResultsPage = () => {
                                                             Missing Skills
                                                         </Typography>
                                                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                                                            {match.missing_skills.map((skill, idx) => (
-                                                                <Chip key={idx} label={skill} size="small" color="error" />
-                                                            ))}
+                                                            {match.missing_skills.map((skill, idx) => {
+                                                                // Handle both string format and object format {skill, weight, has_skill}
+                                                                const skillName = typeof skill === 'string' ? skill : skill.skill;
+                                                                const skillWeight = typeof skill === 'object' && skill.weight ? ` (${skill.weight}%)` : '';
+                                                                return (
+                                                                    <Chip 
+                                                                        key={idx} 
+                                                                        label={`${skillName}${skillWeight}`} 
+                                                                        size="small" 
+                                                                        color="error" 
+                                                                    />
+                                                                );
+                                                            })}
                                                         </Box>
                                                     </Box>
                                                 )}

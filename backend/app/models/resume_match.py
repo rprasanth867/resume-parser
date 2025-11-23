@@ -19,11 +19,14 @@ class ResumeMatch(db.Model):
     missing_skills = db.Column(db.JSON)
     recommendations = db.Column(db.JSON)
     
+    # AI-Powered Detailed Breakdown
+    ai_score_breakdown = db.Column(db.JSON)  # Stores full AI scoring details
+    
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     def to_dict(self):
         """Convert match to dictionary"""
-        return {
+        result = {
             'id': self.id,
             'resume_id': self.resume_id,
             'job_description_id': self.job_description_id,
@@ -38,6 +41,15 @@ class ResumeMatch(db.Model):
             'recommendations': self.recommendations or [],
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
+        
+        # Add AI breakdown if available
+        if self.ai_score_breakdown:
+            result['ai_breakdown'] = self.ai_score_breakdown
+            result['is_ai_scored'] = True
+        else:
+            result['is_ai_scored'] = False
+        
+        return result
     
     def __repr__(self):
         return f'<ResumeMatch Resume:{self.resume_id} JD:{self.job_description_id}>'

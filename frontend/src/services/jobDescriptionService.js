@@ -39,5 +39,10 @@ export const jobDescriptionService = {
     async getAllMatches() {
         const response = await api.get('/job-descriptions/matches');
         return response.data;
+    },
+
+    async findCandidates(jdId, platforms) {
+        const response = await api.post(`/job-descriptions/${jdId}/find-candidates`, { platforms });
+        return response.data;
     }
 };

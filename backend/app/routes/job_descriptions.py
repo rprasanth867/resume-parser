@@ -5,10 +5,18 @@ from app.models.resume import Resume
 from app.models.resume_match import ResumeMatch
 from app.services.ats_scorer import ATSScorer
 from app.services.ai_generator import AIGenerator
+from app.services.ai_ats_scorer import AIATSScorer
+from app.services.candidate_finder import CandidateFinder
 from app.extensions import db
+import logging
+import json
+
+logger = logging.getLogger(__name__)
 
 job_descriptions_bp = Blueprint('job_descriptions', __name__)
 ats_scorer = ATSScorer()
+ai_ats_scorer = None  # Initialize on first use
+candidate_finder = None  # Initialize on first use
 
 @job_descriptions_bp.route('', methods=['POST'])
 @jwt_required()
@@ -28,6 +36,7 @@ def create_job_description():
             title=data['title'],
             description=data['description'],
             required_skills=data.get('required_skills', []),
+            skill_weights=data.get('skill_weights', {}),
             preferred_skills=data.get('preferred_skills', []),
             experience_required=data.get('experience_required'),
             education_required=data.get('education_required')
@@ -132,10 +141,53 @@ def match_resumes(jd_id):
                     'skills': resume.analysis.skills if resume.analysis else [],
                     'experience': resume.analysis.experience if resume.analysis else [],
                     'education': resume.analysis.education if resume.analysis else [],
-                    'parsed_text': resume.parsed_text or ''
+                    'parsed_text': resume.parsed_text or '',
+                    'candidate_name': resume.candidate_name or 'Candidate'
                 }
                 
-                # Calculate match
+                # Use AI-powered advanced scoring
+                global ai_ats_scorer
+                if ai_ats_scorer is None:
+                    try:
+                        ai_ats_scorer = AIATSScorer()
+                    except Exception as e:
+                        logger.warning(f"Failed to initialize AI scorer, falling back to basic: {e}")
+                        ai_ats_scorer = False  # Mark as unavailable
+                
+                # Try AI scoring first, fallback to basic if unavailable
+                if ai_ats_scorer:
+                    try:
+                        ai_result = ai_ats_scorer.calculate_advanced_score(resume_data, jd.to_dict())
+                        
+                        if ai_result.get('success'):
+                            ai_data = ai_result['data']
+                            breakdown = ai_data.get('breakdown', {})
+                            
+                            # Create new match with AI scores
+                            match = ResumeMatch(
+                                resume_id=resume.id,
+                                job_description_id=jd.id,
+                                match_score=ai_data.get('percentage_score', 0),
+                                skills_match_score=breakdown.get('skills_match', {}).get('match_percentage', 0),
+                                experience_match_score=breakdown.get('company_quality', {}).get('average_score', 0) * 10,
+                                education_match_score=breakdown.get('academic_performance', {}).get('normalized_score', 0) * 10,
+                                matched_skills=breakdown.get('skills_match', {}).get('matched_skills', []),
+                                missing_skills=breakdown.get('skills_match', {}).get('missing_skills', []),
+                                recommendations=[ai_data.get('recommendation', '')] + ai_data.get('areas_for_improvement', []),
+                                ai_score_breakdown=ai_data  # Store full AI breakdown
+                            )
+                            db.session.add(match)
+                            
+                            results.append({
+                                'resume_id': resume.id,
+                                'score': ai_data.get('percentage_score', 0),
+                                'ai_powered': True
+                            })
+                            continue
+                    except Exception as e:
+                        logger.error(f"AI scoring failed for resume {resume.id}, falling back to basic: {e}")
+                
+                # Fallback to basic scoring
                 match_result = scorer.calculate_match_score(resume_data, jd)
                 
                 # Create new match (old ones were already deleted above)
@@ -255,16 +307,18 @@ def update_job_description(jd_id):
         # Update fields
         if 'title' in data:
             jd.title = data['title']
-        if 'company' in data:
-            jd.company = data['company']
         if 'description' in data:
             jd.description = data['description']
-        if 'requirements' in data:
-            jd.requirements = data['requirements']
-        if 'location' in data:
-            jd.location = data['location']
-        if 'salary_range' in data:
-            jd.salary_range = data['salary_range']
+        if 'required_skills' in data:
+            jd.required_skills = data['required_skills']
+        if 'skill_weights' in data:
+            jd.skill_weights = data['skill_weights']
+        if 'preferred_skills' in data:
+            jd.preferred_skills = data['preferred_skills']
+        if 'experience_required' in data:
+            jd.experience_required = data['experience_required']
+        if 'education_required' in data:
+            jd.education_required = data['education_required']
             
         db.session.commit()
         
@@ -402,3 +456,44 @@ def enhance_job_description(jd_id):
         
     except Exception as e:
         return jsonify({'error': f'Failed to enhance job description: {str(e)}'}), 500
+
+@job_descriptions_bp.route('/<int:jd_id>/find-candidates', methods=['POST'])
+@jwt_required()
+def find_candidates(jd_id):
+    """Find candidates from job portals using AI based on job description"""
+    global candidate_finder
+    
+    try:
+        current_user_id = int(get_jwt_identity())
+        
+        jd = JobDescription.query.get(jd_id)
+        if not jd or jd.user_id != current_user_id:
+            return jsonify({'error': 'Job description not found or unauthorized'}), 404
+        
+        data = request.get_json()
+        platforms = data.get('platforms', [])
+        
+        if not platforms:
+            return jsonify({'error': 'No platforms selected'}), 400
+        
+        # Initialize CandidateFinder on first use
+        if candidate_finder is None:
+            try:
+                candidate_finder = CandidateFinder()
+            except ValueError as e:
+                logger.error(f"Failed to initialize CandidateFinder: {str(e)}")
+                return jsonify({'error': 'AI service not configured. Please set GROQ_API_KEY.'}), 500
+        
+        result = candidate_finder.search_candidates(jd.to_dict(), platforms)
+        
+        if not result['success']:
+            return jsonify({'error': result['error']}), 500
+        
+        return jsonify({
+            'message': 'Candidates found successfully',
+            'data': result
+        }), 200
+        
+    except Exception as e:
+        logger.exception("Error in find_candidates route")
+        return jsonify({'error': f'Failed to find candidates: {str(e)}'}), 500

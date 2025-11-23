@@ -9,6 +9,7 @@ class JobDescription(db.Model):
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text, nullable=False)
     required_skills = db.Column(db.JSON)
+    skill_weights = db.Column(db.JSON)  # Store skill weights as {"skill_name": weight_percentage}
     preferred_skills = db.Column(db.JSON)
     experience_required = db.Column(db.String(100))
     education_required = db.Column(db.String(255))
@@ -24,6 +25,7 @@ class JobDescription(db.Model):
             'title': self.title,
             'description': self.description,
             'required_skills': self.required_skills or [],
+            'skill_weights': self.skill_weights or {},
             'preferred_skills': self.preferred_skills or [],
             'experience_required': self.experience_required,
             'education_required': self.education_required,
